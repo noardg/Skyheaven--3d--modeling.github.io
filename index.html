@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Assets Marketplace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase client -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <!-- Stripe client -->
+  <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-bold">3D Assets Marketplace</h1>
+      <nav class="space-x-2">
+        <button class="nav-btn px-3 py-1 rounded bg-indigo-600 text-white" data-page="landing">Landing</button>
+        <button class="nav-btn px-3 py-1 rounded bg-gray-100" data-page="manage">Manage</button>
+        <button class="nav-btn px-3 py-1 rounded bg-gray-100" data-page="admin">Admin</button>
+        <button id="login-btn" class="px-3 py-1 rounded bg-green-600 text-white">Login</button>
+        <button id="logout-btn" class="hidden px-3 py-1 rounded bg-red-600 text-white">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Landing page -->
+    <section id="page-landing" class="page">
+      <h2 class="text-3xl font-extrabold mb-4">Upload, Sell, and Discover 3D Assets</h2>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white rounded shadow p-4">
+          <h3 class="font-semibold mb-2">Upload an asset</h3>
+          <form id="upload-form" class="space-y-3">
+            <input id="asset-title" placeholder="Title" required class="block w-full border rounded px-3 py-2" />
+            <textarea id="asset-desc" rows="3" placeholder="Description" class="block w-full border rounded px-3 py-2"></textarea>
+            <input id="asset-file" type="file" required accept=".glb,.gltf,.obj,.fbx,.zip,image/*" />
+            <label class="inline-flex items-center">
+              <input id="asset-paid" type="checkbox" class="mr-2" /> Paid asset
+            </label>
+            <input id="asset-price" type="number" step="0.01" min="0" placeholder="Price (USD)" class="border rounded px-3 py-2" disabled />
+            <button type="submit" class="px-4 py-2 rounded bg-indigo-600 text-white">Upload</button>
+          </form>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">Explore assets</h3>
+          <div id="asset-list" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manage page -->
+    <section id="page-manage" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Manage Your Uploads</h2>
+      <div id="manage-list" class="space-y-4"></div>
+    </section>
+
+    <!-- Admin page -->
+    <section id="page-admin" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Admin — Approve & Moderate</h2>
+      <div id="admin-list" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
+    Powered by Supabase + Stripe
+  </footer>
+
+  <script>
+    // TODO: replace with your own keys
+    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const STRIPE_KEY = "YOUR_STRIPE_PUBLISHABLE_KEY";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const stripe = Stripe(STRIPE_KEY);
+
+    let currentUser = null;
+
+    // SPA navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-' + btn.dataset.page).classList.remove('hidden');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-indigo-600', 'text-white'));
+        btn.classList.add('bg-indigo-600', 'text-white');
+        loadAssets();
+      });
+    });
+
+    // Paid toggle
+    document.getElementById('asset-paid').addEventListener('change', (e) => {
+      document.getElementById('asset-price').disabled = !e.target.checked;
+    });
+
+    // Auth
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const email = prompt("Email:");
+      const password = prompt("Password:");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { alert(error.message); return; }
+      currentUser = data.user;
+      document.getElementById('login-btn').classList.add('hidden');
+      document.getElementById('logout-btn').classList.remove('hidden');
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      currentUser = null;
+      document.getElementById('login-btn').classList.remove('hidden');
+      document.getElementById('logout-btn').classList.add('hidden');
+    });
+
+    // Upload form
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) { alert("Please log in first"); return; }
+      const file = document.getElementById('asset-file').files[0];
+      const title = document.getElementById('asset-title').value;
+      const desc = document.getElementById('asset-desc').value;
+      const paid = document.getElementById('asset-paid').checked;
+      const price = paid ? Number(document.getElementById('asset-price').value) : 0;
+
+      // Upload file to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('assets').upload(`${Date.now()}_${file.name}`, file);
+      if (uploadError) { alert(uploadError.message); return; }
+
+      // Save metadata to DB
+      const { error: dbError } = await supabase.from('assets').insert({
+        title, description: desc, filename: file.name, url: uploadData.path,
+        paid, price, status: 'pending', uploader: currentUser.email
+      });
+      if (dbError) { alert(dbError.message); return; }
+
+      alert("Uploaded! Pending admin approval.");
+      loadAssets();
+    });
+
+    // Load assets
+    async function loadAssets() {
+      const { data: assets, error } = await supabase.from('assets').select('*');
+      if (error) { console.error(error); return; }
+
+      const list = document.getElementById('asset-list');
+      list.innerHTML = '';
+      assets.filter(a => a.status === 'approved').forEach(asset => {
+        const div = document.createElement('div');
+        div.className = "bg-white p-3 rounded shadow flex justify-between";
+        div.innerHTML = `<div><strong>${asset.title}</strong><p>${asset.description}</p></div><div>${asset.paid ? '$' + asset.price.toFixed(2) : 'Free'}</div>`;
+
+        if (asset.paid) {
+          const btn = document.createElement('button');
+          btn.textContent = "Buy";
+          btn.className = "px-3 py-1 rounded bg-green-600 text-white";
+          btn.addEventListener('click', () => buyAsset(asset));
+          div.appendChild(btn);
+        } else {
+          const aTag = document.createElement('a');
+          aTag.href = supabase.storage.from('assets').getPublicUrl(asset.url).data.publicUrl;
+          aTag.textContent = "Download";
+          aTag.className = "px-3 py-1 rounded bg-indigo-600 text-white";
+          div.appendChild(aTag);
+        }
+        list.appendChild(div);
+      });
+    }
+
+    // Mock Stripe checkout
+    function buyAsset(asset) {
+      alert(`Redirecting to Stripe checkout for ${asset.title} ($${asset.price})`);
+      // TODO: Implement real Stripe Checkout session using your serverless function or backend
+    }
+
+    loadAssets();
+  </script>
+</body>
+</html>
