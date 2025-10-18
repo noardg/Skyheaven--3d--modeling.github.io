@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>3D Asset Market — Demo</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+        :root { font-family: Inter, system-ui, Arial; color:#111; }
+        body { margin:0; padding:20px; background:#f6f7fb; }
+        header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+        h1 { margin:0; font-size:18px; }
+        .wrap { display:flex; gap:20px; align-items:flex-start; }
+        form.card, .catalog { background:#fff; padding:16px; border-radius:8px; box-shadow:0 6px 18px rgba(20,20,40,0.06); }
+        form.card { width:320px; }
+        label { display:block; margin-top:8px; font-size:13px; color:#444; }
+        input[type=text], input[type=number], textarea, select { width:100%; padding:8px 10px; margin-top:6px; border:1px solid #e2e6ef; border-radius:6px; background:#fbfdff; box-sizing:border-box; font-size:13px; }
+        textarea { min-height:80px; resize:vertical; }
+        button { margin-top:12px; padding:10px 12px; border:0; background:#0066ff; color:#fff; border-radius:8px; cursor:pointer; }
+        button.ghost { background:#eef3ff; color:#064; }
+        .catalog { flex:1; min-height:240px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px; }
+        .asset { padding:10px; border-radius:8px; background:#fcfdff; display:flex; gap:10px; align-items:flex-start; }
+        .thumb { width:84px; height:84px; background:#eef3ff; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+        .thumb img, .thumb model-viewer { width:100%; height:100%; object-fit:cover; }
+        .meta { flex:1; }
+        .meta h3 { margin:0; font-size:14px; }
+        .meta p { margin:6px 0 0 0; font-size:12px; color:#666; }
+        .meta .price { margin-top:8px; font-weight:600; color:#0b6; }
+        .actions { display:flex; gap:8px; margin-top:8px; }
+        .small { padding:6px 8px; font-size:13px; border-radius:6px; border:0; cursor:pointer; }
+        .btn-preview { background:#fff; border:1px solid #dde7ff; color:#0b6; }
+        .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(10,10,20,0.45); z-index:50; }
+        .modal .panel { background:#fff; padding:14px; border-radius:10px; width:min(880px,95%); max-height:90vh; overflow:auto; }
+        .close { float:right; background:#eee; border-radius:6px; padding:6px; border:0; cursor:pointer; }
+        .hint { font-size:12px; color:#777; margin-top:6px; }
+        footer { margin-top:18px; font-size:12px; color:#888; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>3D Asset Market — Demo</h1>
+        <div class="hint">Local demo: uploads are stored in your browser (no server). Keep files small.</div>
+    </header>
+
+    <div class="wrap">
+        <form id="uploadForm" class="card" autocomplete="off">
+            <strong>Upload new asset</strong>
+            <label>Title
+                <input id="title" type="text" placeholder="Example: Sci-fi Helmet" required />
+            </label>
+            <label>Description
+                <textarea id="description" placeholder="Short description"></textarea>
+            </label>
+            <label>Price (USD)
+                <input id="price" type="number" min="0" step="0.01" value="0.00" />
+            </label>
+            <label>Asset file (.glb, .gltf, .obj, .zip, .png for preview)
+                <input id="file" type="file" accept=".glb,.gltf,.obj,.fbx,.zip,.png,.jpg,.jpeg" required />
+            </label>
+            <label>Thumbnail (optional image)
+                <input id="thumb" type="file" accept="image/*" />
+            </label>
+            <div class="hint">Files are encoded into local storage. Keep below 5 MB for demo.</div>
+            <button type="submit">Add asset</button>
+            <button id="clearAll" type="button" class="ghost" style="margin-left:8px;background:#fff;border:1px solid #f0f0f0;color:#333">Clear demo data</button>
+        </form>
+
+        <section class="catalog">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <strong>Catalog</strong>
+                <input id="search" placeholder="Search title, description, tags..." style="padding:8px;border-radius:8px;border:1px solid #e6eefb;width:260px" />
+            </div>
+
+            <div id="grid" class="grid">
+                <!-- assets -->
+            </div>
+        </section>
+    </div>
+
+    <div id="modal" class="modal" role="dialog" aria-hidden="true">
+        <div class="panel">
+            <button id="closeModal" class="close">✕</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <footer>Demo site — no payment processing. Buying just gives a download link in this demo.</footer>
+
+    <script>
+        // Simple client-side demo marketplace. Not suitable for production.
+        const MAX_BYTES = 5 * 1024 * 1024; // 5MB limit for demo localStorage
+        const STORAGE_KEY = 'assets3d_v1';
+        const form = document.getElementById('uploadForm');
+        const grid = document.getElementById('grid');
+        const search = document.getElementById('search');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modalContent');
+        const closeModal = document.getElementById('closeModal');
+        const clearAllBtn = document.getElementById('clearAll');
+
+        let assets = loadAssets();
+        renderAssets();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const price = parseFloat(document.getElementById('price').value || 0).toFixed(2);
+            const fileInput = document.getElementById('file');
+            const thumbInput = document.getElementById('thumb');
+
+            if (!fileInput.files.length) return alert('Choose an asset file.');
+
+            const file = fileInput.files[0];
+            if (file.size > MAX_BYTES) return alert('File too big for demo (max 5 MB).');
+
+            try {
+                const fileDataUrl = await readFileAsDataURL(file);
+                let thumbDataUrl = '';
+                if (thumbInput.files.length) {
+                    const t = thumbInput.files[0];
+                    if (t.size <= MAX_BYTES) thumbDataUrl = await readFileAsDataURL(t);
+                } else {
+                    // If uploaded file is an image, use it as thumbnail
+                    if (file.type.startsWith('image/')) thumbDataUrl = fileDataUrl;
+                }
+
+                const asset = {
+                    id: 'a_' + Date.now(),
+                    title,
+                    description,
+                    price,
+                    fileName: file.name,
+                    fileType: file.type || guessMimeFromName(file.name),
+                    dataUrl: fileDataUrl,
+                    thumb: thumbDataUrl,
+                    createdAt: Date.now()
+                };
+
+                assets.unshift(asset);
+                saveAssets(assets);
+                renderAssets();
+                form.reset();
+            } catch (err) {
+                alert('Error reading file: ' + (err.message || err));
+            }
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            if (!confirm('Clear all demo assets from your browser?')) return;
+            assets = [];
+            saveAssets(assets);
+            renderAssets();
+        });
+
+        search.addEventListener('input', () => renderAssets(search.value));
+
+        closeModal.addEventListener('click', () => hideModal());
+        modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+        function renderAssets(query = '') {
+            grid.innerHTML = '';
+            const q = (query || '').toLowerCase().trim();
+            const list = assets.filter(a => {
+                if (!q) return true;
+                return (a.title + ' ' + a.description + ' ' + a.fileName).toLowerCase().includes(q);
+            });
+            if (!list.length) {
+                grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;color:#666">No assets yet. Upload one to begin.</div>';
+                return;
+            }
+
+            for (const a of list) {
+                const el = document.createElement('div');
+                el.className = 'asset';
+                el.innerHTML = `
+                    <div class="thumb" data-id="${a.id}">${thumbnailHtml(a)}</div>
+                    <div class="meta">
+                        <h3>${escapeHtml(a.title)}</h3>
+                        <p>${escapeHtml(a.description || a.fileName)}</p>
+                        <div class="price">$${a.price}</div>
+                        <div class="actions">
+                            <button class="small btn-preview" data-id="${a.id}">Preview</button>
+                            <button class="small" data-id="${a.id}" style="background:#083; color:#fff">Buy / Download</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(el);
+            }
+
+            // attach handlers
+            grid.querySelectorAll('.btn-preview').forEach(btn => btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id'); openPreview(id);
+            }));
+            grid.querySelectorAll('.small:not(.btn-preview)').forEach(btn => btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id'); buyAsset(id);
+            }));
+        }
+
+        function thumbnailHtml(a) {
+            if (a.thumb) return `<img alt="thumb" src="${a.thumb}">`;
+            // show small model-viewer if glb/gltf
+            if (a.fileName && /\.(glb|gltf)$/i.test(a.fileName)) {
+                return `<model-viewer src="${a.dataUrl}" exposure="1" style="width:100%;height:100%;" camera-controls ar></model-viewer>`;
+            }
+            // generic icon
+            return `<div style="font-size:12px;color:#466;padding:8px;text-align:center"> ${escapeHtml(a.fileName || '')} </div>`;
+        }
+
+        async function openPreview(id) {
+            const a = assets.find(x => x.id === id);
+            if (!a) return;
+            // Build preview content
+            let html = `<h2 style="margin-top:0">${escapeHtml(a.title)} <small style="color:#666;font-weight:400">$${a.price}</small></h2>`;
+            if (a.fileName && /\.(glb|gltf)$/i.test(a.fileName)) {
+                html += `<model-viewer src="${a.dataUrl}" alt="${escapeHtml(a.title)}" camera-controls ar ar-scale="auto" style="width:100%;height:480px;"></model-viewer>`;
+            } else if (a.thumb) {
+                html += `<img src="${a.thumb}" alt="${escapeHtml(a.title)}" style="max-width:100%;border-radius:8px">`;
+            } else {
+                html += `<div style="padding:18px;background:#f7f9ff;border-radius:8px">No preview available for this file type.</div>`;
+            }
+
+            html += `<p style="margin-top:12px">${escapeHtml(a.description || '')}</p>`;
+            html += `<div style="display:flex;gap:8px;margin-top:12px"><button id="downloadBtn" class="small" style="background:#0b6;color:#fff">Download</button><button id="buyBtn" class="small">Buy (simulate)</button></div>`;
+
+            modalContent.innerHTML = html;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden','false');
+
+            document.getElementById('downloadBtn').addEventListener('click', () => downloadAsset(a));
+            document.getElementById('buyBtn').addEventListener('click', () => simulateBuy(a));
+        }
+
+        function hideModal() {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden','true');
+            modalContent.innerHTML = '';
+        }
+
+        function downloadAsset(a) {
+            const blob = dataURLtoBlob(a.dataUrl);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = a.fileName || 'asset';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }
+
+        function buyAsset(id) {
+            const a = assets.find(x => x.id === id);
+            if (!a) return;
+            simulateBuy(a);
+        }
+
+        function simulateBuy(a) {
+            // Simple simulated checkout
+            const proceed = confirm(`Simulate purchase of "${a.title}" for $${a.price}?\n(This is a demo — no real payment.)`);
+            if (!proceed) return;
+            // After "payment", provide download
+            alert('Payment simulated. Download will start.');
+            downloadAsset(a);
+            hideModal();
+        }
+
+        // Utilities
+        function readFileAsDataURL(file) {
+            return new Promise((res, rej) => {
+                const fr = new FileReader();
+                fr.onload = () => res(fr.result);
+                fr.onerror = rej;
+                fr.readAsDataURL(file);
+            });
+        }
+
+        function dataURLtoBlob(dataurl) {
+            const arr = dataurl.split(',');
+            const m = arr[0].match(/:(.*?);/);
+            const mime = m ? m[1] : 'application/octet-stream';
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8 = new Uint8Array(n);
+            while (n--) u8[n] = bstr.charCodeAt(n);
+            return new Blob([u8], { type: mime });
+        }
+
+        function saveAssets(list) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+            } catch (err) {
+                console.error('Save failed', err);
+                alert('Saving asset failed — storage limit reached.');
+            }
+        }
+
+        function loadAssets() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function guessMimeFromName(name) {
+            const ext = (name.split('.').pop()||'').toLowerCase();
+            if (ext === 'glb') return 'model/gltf-binary';
+            if (ext === 'gltf') return 'model/gltf+json';
+            if (/(png|jpg|jpeg|gif)/i.test(ext)) return 'image/' + ext.replace('jpg','jpeg');
+            if (ext === 'obj') return 'text/plain';
+            return 'application/octet-stream';
+        }
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        // expose small debug helpers in window (optional)
+        window.__assetsDemo = {
+            getAll: () => assets,
+            clear: () => { assets=[]; saveAssets(assets); renderAssets(); }
+        };
+    </script>
+</body>
+</html>
