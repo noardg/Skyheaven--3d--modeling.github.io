@@ -1,376 +1,274 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Slidy-Board | Fingerboards Without Wheels</title>
-<style>
-/* GENERAL */
-:root {
-  --accent: #ff6600;
-  --accent-hover: #e65c00;
-  --dark: #222;
-  --light: #f5f5f5;
-  --white: #fff;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slidy-Board</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      color: #222;
+    }
+    header {
+      background: #111;
+      color: white;
+      padding: 15px 25px;
+    }
+    header div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 20px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    nav a:hover { color: #ff6600; }
 
-body {
-  font-family: 'Segoe UI', Arial, sans-serif;
-  margin: 0;
-  background: var(--light);
-  color: var(--dark);
-}
+    .hero {
+      background: linear-gradient(135deg, #ff6600, #ff9933);
+      color: white;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .hero h2 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+    }
 
-/* HEADER */
-header {
-  background: var(--dark);
-  color: var(--white);
-  padding: 15px 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-}
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+      padding: 40px 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .product {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      padding: 20px;
+      transition: transform 0.2s;
+    }
+    .product:hover { transform: translateY(-5px); }
+    .product img {
+      width: 100%;
+      border-radius: 10px;
+    }
+    .product h3 { margin: 10px 0; }
+    .product button {
+      background: #ff6600;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .product button:hover { background: #e55a00; }
 
-.header-container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    .basket {
+      background: white;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    .basket h2 { margin-bottom: 15px; }
+    .basket-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .checkout-btn {
+      margin-top: 20px;
+      background: #28a745;
+      color: white;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .checkout-btn:hover { background: #218838; }
 
-header h1 {
-  margin: 0;
-  font-size: 1.8em;
-  color: var(--accent);
-}
+    /* Modal */
+    #customModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    #customModal .modal-content {
+      background: #fff;
+      padding: 25px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    #customModal input, #customModal select {
+      width: 80%;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    #customModal button {
+      background: #ff6600;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #customModal button:hover { background: #e55a00; }
 
-nav a {
-  color: var(--white);
-  text-decoration: none;
-  font-weight: 500;
-  margin-left: 20px;
-  transition: 0.2s;
-}
-
-nav a:hover {
-  color: var(--accent);
-}
-
-nav .btn {
-  background: var(--accent);
-  color: var(--white);
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: bold;
-}
-
-nav .btn:hover {
-  background: var(--accent-hover);
-}
-
-/* MAIN CONTENT */
-.container {
-  width: 90%;
-  max-width: 1200px;
-  margin: 40px auto;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 25px;
-  font-size: 2em;
-  color: var(--dark);
-}
-
-.products {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 25px;
-}
-
-.product {
-  background: var(--white);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  text-align: center;
-  transition: transform 0.2s;
-}
-
-.product:hover {
-  transform: translateY(-5px);
-}
-
-.product img {
-  width: 100%;
-  border-radius: 10px;
-}
-
-.product h3 {
-  margin: 10px 0 5px;
-}
-
-.product button {
-  background: var(--accent);
-  color: var(--white);
-  border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.product button:hover {
-  background: var(--accent-hover);
-}
-
-/* FOOTER */
-footer {
-  background: var(--dark);
-  color: var(--white);
-  text-align: center;
-  padding: 20px;
-  margin-top: 50px;
-}
-
-/* CART MODAL */
-#cartModal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
-}
-
-#cartContent {
-  background: var(--white);
-  border-radius: 15px;
-  width: 90%;
-  max-width: 500px;
-  padding: 25px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-  text-align: left;
-  animation: pop 0.3s ease;
-}
-
-@keyframes pop {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-#cartHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#cartHeader h3 {
-  margin: 0;
-}
-
-#cartItems {
-  margin-top: 15px;
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.cart-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.cart-item:last-child {
-  border-bottom: none;
-}
-
-.cart-buttons {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  gap: 10px;
-}
-
-.cart-buttons button {
-  background: var(--accent);
-  color: var(--white);
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.cart-buttons button:hover {
-  background: var(--accent-hover);
-}
-
-.cart-buttons .close {
-  background: #777;
-}
-
-.cart-buttons .close:hover {
-  background: #555;
-}
-</style>
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #111;
+      color: #aaa;
+      margin-top: 60px;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <div class="header-container">
-    <h1>Slidy-Board</h1>
-    <nav id="navLinks">
-      <a href="#products">Products</a>
-      <a href="signup.html" id="signupLink" class="btn">Sign Up</a>
-      <a href="login.html" id="loginLink" class="btn">Login</a>
-      <a href="#" id="cartBtn">🛒 Basket (<span id="cartCount">0</span>)</a>
-      <a href="#" id="logoutBtn" class="btn" style="background:#e60000;display:none;">Logout</a>
-    </nav>
-  </div>
-</header>
+  <header>
+    <div>
+      <h1>Slidy-Board</h1>
+      <nav>
+        <a href="#products">Products</a>
+        <a href="signup.html">Sign Up</a>
+        <a href="login.html">Login</a>
+      </nav>
+    </div>
+  </header>
 
-<div class="container" id="products">
-  <h2>Our Slidy-Boards</h2>
-  <div class="products">
+  <section class="hero">
+    <h2>Slide. Glide. Create.</h2>
+    <p>The smoothest finger-board experience ever made.</p>
+  </section>
+
+  <section id="products" class="products">
     <div class="product">
       <img src="https://via.placeholder.com/270x170" alt="Classic Slidy-Board" />
       <h3>Classic Slidy-Board</h3>
       <p>Perfect for beginners. Smooth sliding action!</p>
-      <button onclick="addToCart('Classic Slidy-Board', 15)">Add to Basket - $15</button>
+      <button onclick="addToCart('Classic Slidy-Board', 15)">Add to Basket – $15</button>
     </div>
+
     <div class="product">
-      <img src="https://via.placeholder.com/270x170" alt="better Slidy-Board" />
-      <h3>Pro Slidy-Board</h3>
+      <img src="https://via.placeholder.com/270x170" alt="Better Slidy-Board" />
+      <h3>Better Slidy-Board</h3>
       <p>Advanced design for tricks and stunts.</p>
-      <button onclick="addToCart('Pro Slidy-Board', 25)">Add to Basket - $25</button>
+      <button onclick="addToCart('Better Slidy-Board', 25)">Add to Basket – $25</button>
     </div>
+
     <div class="product">
       <img src="https://via.placeholder.com/270x170" alt="Custom Slidy-Board" />
-      <h3>Mini Slidy-Board</h3>
-      <p>Compact size, ideal for on-the-go fun.</p>
-      <button onclick="addToCart('Mini Slidy-Board', 10)">Add to Basket - $10</button>
+      <h3>Custom Slidy-Board</h3>
+      <p>Design your own! Pick color, logo, and material.</p>
+      <button onclick="openCustomModal()">Customize Yours</button>
+    </div>
+  </section>
+
+  <div class="basket">
+    <h2>Your Basket</h2>
+    <div id="basketItems"></div>
+    <p id="total"></p>
+    <button class="checkout-btn" onclick="checkout()">Checkout</button>
+  </div>
+
+  <!-- Custom Modal -->
+  <div id="customModal">
+    <div class="modal-content">
+      <h3>Create Your Custom Slidy-Board</h3>
+      <label>Deck Color:</label><br>
+      <input type="color" id="customColor" value="#ff6600"><br>
+      <label>Logo Text:</label><br>
+      <input type="text" id="customLogo" placeholder="Your logo"><br>
+      <label>Material:</label><br>
+      <select id="customMaterial">
+        <option value="Wood">Wood</option>
+        <option value="Plastic">Plastic</option>
+        <option value="Metal">Metal</option>
+      </select><br>
+      <button onclick="createCustomBoard()">Add to Basket – $30</button>
+      <br><br>
+      <button style="background:#ccc; color:#000;" onclick="closeCustomModal()">Cancel</button>
     </div>
   </div>
-</div>
 
-<!-- CART MODAL -->
-<div id="cartModal">
-  <div id="cartContent">
-    <div id="cartHeader">
-      <h3>Your Basket</h3>
-      <button class="close" onclick="closeCart()">✖</button>
-    </div>
-    <div id="cartItems"></div>
-    <div class="cart-buttons">
-      <button onclick="checkout()">Checkout</button>
-    </div>
-  </div>
-</div>
+  <footer>
+    <p>© 2025 Slidy-Board | All rights reserved</p>
+  </footer>
 
-<footer>
-  <p>Contact us: info@slidyboard.com | © 2025 Slidy-Board</p>
-</footer>
+  <script>
+    let cart = [];
 
-<script>
-const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-const signupLink = document.getElementById('signupLink');
-const loginLink = document.getElementById('loginLink');
-const logoutBtn = document.getElementById('logoutBtn');
-const cartBtn = document.getElementById('cartBtn');
-const cartCount = document.getElementById('cartCount');
-const cartModal = document.getElementById('cartModal');
-const cartItemsDiv = document.getElementById('cartItems');
+    function addToCart(name, price, customOptions = null) {
+      cart.push({ name, price, customOptions });
+      updateBasket();
+    }
 
-if (currentUser) {
-  signupLink.style.display = 'none';
-  loginLink.style.display = 'none';
-  logoutBtn.style.display = 'inline-block';
-} else {
-  logoutBtn.style.display = 'none';
-}
+    function updateBasket() {
+      const basketDiv = document.getElementById("basketItems");
+      basketDiv.innerHTML = "";
+      let total = 0;
+      cart.forEach((item, i) => {
+        total += item.price;
+        let customInfo = "";
+        if (item.customOptions) {
+          customInfo = ` - ${item.customOptions.color}, ${item.customOptions.material}, "${item.customOptions.logo}"`;
+        }
+        basketDiv.innerHTML += `
+          <div class="basket-item">
+            <span>${item.name}${customInfo}</span>
+            <span>$${item.price}</span>
+          </div>`;
+      });
+      document.getElementById("total").innerText = "Total: $" + total.toFixed(2);
+    }
 
-function logout() {
-  localStorage.removeItem('currentUser');
-  alert('You have been logged out!');
-  window.location.reload();
-}
-logoutBtn.addEventListener('click', logout);
+    function checkout() {
+      if (cart.length === 0) {
+        alert("Your basket is empty!");
+        return;
+      }
+      alert("Checkout not yet connected to payment system (coming soon with Stripe).");
+      // later: call your backend endpoint here
+    }
 
-// CART SYSTEM
-let cart = JSON.parse(localStorage.getItem('cart_' + (currentUser ? currentUser.email : 'guest'))) || [];
-updateCartCount();
+    function openCustomModal() {
+      document.getElementById("customModal").style.display = "flex";
+    }
+    function closeCustomModal() {
+      document.getElementById("customModal").style.display = "none";
+    }
 
-function addToCart(productName, price) {
-  if (!currentUser) {
-    alert('Please log in to add items to your basket.');
-    return;
-  }
-  cart.push({ name: productName, price });
-  localStorage.setItem('cart_' + currentUser.email, JSON.stringify(cart));
-  updateCartCount();
-  alert(productName + " added to basket!");
-}
-
-function updateCartCount() {
-  cartCount.textContent = cart.length;
-}
-
-cartBtn.addEventListener('click', () => {
-  if (!currentUser) {
-    alert('Please log in to view your basket.');
-    return;
-  }
-  showCart();
-});
-
-function showCart() {
-  renderCartItems();
-  cartModal.style.display = 'flex';
-}
-
-function closeCart() {
-  cartModal.style.display = 'none';
-}
-
-function renderCartItems() {
-  if (cart.length === 0) {
-    cartItemsDiv.innerHTML = "<p>Your basket is empty.</p>";
-  } else {
-    const total = cart.reduce((sum, item) => sum + item.price, 0);
-    cartItemsDiv.innerHTML = cart
-      .map(
-        (item, i) => `
-        <div class="cart-item">
-          <span>${i + 1}. ${item.name}</span>
-          <span>$${item.price}</span>
-        </div>`
-      )
-      .join('') +
-      `<p style="font-weight:bold; text-align:right; margin-top:10px;">Total: $${total}</p>`;
-  }
-}
-
-function checkout() {
-  if (cart.length === 0) {
-    alert("Your basket is empty!");
-    return;
-  }
-  alert("Checkout successful! Thank you for your purchase 🛍️");
-  cart = [];
-  localStorage.setItem('cart_' + currentUser.email, JSON.stringify(cart));
-  updateCartCount();
-  renderCartItems();
-}
-</script>
+    function createCustomBoard() {
+      const color = document.getElementById("customColor").value;
+      const logo = document.getElementById("customLogo").value || "Custom Logo";
+      const material = document.getElementById("customMaterial").value;
+      const options = { color, logo, material };
+      addToCart("Custom Slidy-Board", 30, options);
+      closeCustomModal();
+    }
+  </script>
 </body>
 </html>
