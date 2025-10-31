@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SkyHeaven 3D Modeling</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #000000;
+      color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #1a1a1a;
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      color: #ffffff;
+    }
+    .container {
+      max-width: 700px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background-color: #1f1f1f;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #333;
+    }
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 6px;
+      color: #ffffff;
+    }
+    .pricing-item {
+      margin: 12px 0;
+    }
+    .pricing-item h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #ffffff;
+    }
+    .pricing-item p {
+      color: #ccc;
+      margin: 4px 0 0;
+      font-size: 14px;
+    }
+    button {
+      background-color: #555555;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #777777;
+    }
+    footer {
+      text-align: center;
+      color: #aaa;
+      font-size: 13px;
+      padding: 20px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.open {
+      display: flex;
+    }
+    .modal-card {
+      background-color: #1a1a1a;
+      padding: 16px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      border: 1px solid #333;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      background: #222222;
+      border: 1px solid #444;
+      border-radius: 5px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SkyHeaven 3D Modeling</h1>
+    <p>Custom models for your Roblox game</p>
+  </header>
+
+  <div class="container">
+    <section class="card">
+      <h2>Pricing</h2>
+      <div class="pricing-item">
+        <h3>Small Prop — 2.5–5 €</h3>
+        <p>Simple low-poly model with basic texture.</p>
+      </div>
+      <div class="pricing-item">
+        <h3>Weapon / Accessory — 7–13 €</h3>
+        <p>Simple textured model.</p>
+      </div>
+      <div class="pricing-item">
+        <h3>Complex Model / Pet — 18+ €</h3>
+        <p>Detailed model or small creature with rigging.</p>
+      </div>
+      <p style="font-size:14px;color:#aaa;">* Robux via group payout or donation.</p>
+    </section>
+
+    <section class="card" style="text-align:center;">
+      <h2>Request a Quote</h2>
+      <p>Describe your model idea and request a price estimate.</p>
+      <button onclick="openModal()">Open Quote Form</button>
+    </section>
+  </div>
+
+  <footer>
+    © 2025 SkyHeaven 3D Modeling Portfolio.
+  </footer>
+
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h3>Request a Quote</h3>
+      <label>Project Title</label>
+      <input id="title" placeholder="e.g. Sword Model">
+      <label>Description</label>
+      <textarea id="desc" rows="3" placeholder="Describe what you need"></textarea>
+      <label>Preferred Payment</label>
+      <select id="payment">
+        <option>Robux</option>
+        <option>Real Money (€)</option>
+      </select>
+      <label>Budget (number)</label>
+      <input id="budget" placeholder="e.g. 1000">
+      <button onclick="sendQuote()">Send Quote</button>
+      <button onclick="closeModal()" style="background:#333;margin-top:6px;">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    function openModal(){document.getElementById('modal').classList.add('open');}
+    function closeModal(){document.getElementById('modal').classList.remove('open');}
+    function sendQuote(){
+      const t=document.getElementById('title').value||'Model Request';
+      const d=document.getElementById('desc').value||'';
+      const p=document.getElementById('payment').value;
+      const b=document.getElementById('budget').value||'';
+      const body=`Project: ${t}%0A%0ADescription: ${d}%0A%0APayment: ${p}%0ABudget: ${b}`;
+      window.location.href=`mailto:noardgyt2000@gmail.com?subject=${encodeURIComponent('Quote Request: '+t)}&body=${body}`;
+    }
+  </script>
+</body>
+</html>
